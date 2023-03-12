@@ -58,8 +58,10 @@ int main(int argc, char *argv[]) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    ShaderProgram shaderProgram;
-    shaderProgram.loadShadersFromFile("colorPassthrough.vert", "colorPassthrough.frag");
+    ShaderProgram colorPassthroughShader;
+    colorPassthroughShader.loadShadersFromFile("colorPassthrough.vert", "colorPassthrough.frag");
+    ShaderProgram grayscaleShader;
+    grayscaleShader.loadShadersFromFile("grayscale.vert", "grayscale.frag");
 
     GLuint frameBufferId, framebufferColorTexture;
     glGenFramebuffers(1, &frameBufferId);
@@ -80,12 +82,22 @@ int main(int argc, char *argv[]) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     enum PostProcessingEffect {
-        NO_EFFECT
+        NO_EFFECT,
+        GRAYSCALE,
+        MOSAIC
     };
     int selectedEffect = NO_EFFECT;
 
     glm::vec3 initialCubePosition = glm::vec3(0.0f, 0.0f, -2.0f);
-    Cube cube(initialCubePosition, shaderProgram);
+    Cube cube(initialCubePosition, colorPassthroughShader);
+    glm::vec3 initialCubePosition2 = glm::vec3(3.0f, 2.0f, -3.0f);
+    Cube cube2(initialCubePosition2, colorPassthroughShader);
+    glm::vec3 initialCubePosition3 = glm::vec3(1.5f, -2.0f, -4.0f);
+    Cube cube3(initialCubePosition3, colorPassthroughShader);
+    glm::vec3 initialCubePosition4 = glm::vec3(-4.0f, 3.0f, -5.0f);
+    Cube cube4(initialCubePosition4, colorPassthroughShader);
+    glm::vec3 initialCubePosition5 = glm::vec3(-3.0f, -4.0f, -5.0f);
+    Cube cube5(initialCubePosition5, colorPassthroughShader);
 
     float screenVertexData[] = {
         -1.0f, -1.0f, 0.0f,    0.0f, 0.0f,
@@ -127,6 +139,10 @@ int main(int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
         cube.animateAndRender(deltaTime);
+        cube2.animateAndRender(deltaTime);
+        cube3.animateAndRender(deltaTime);
+        cube4.animateAndRender(deltaTime);
+        cube5.animateAndRender(deltaTime);
         glDisable(GL_DEPTH_TEST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -135,12 +151,23 @@ int main(int argc, char *argv[]) {
         glViewport(0, 0, display_w, display_h);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        screenShader.use();
-        glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
-        glBindVertexArray(vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        if (selectedEffect == GRAYSCALE) {
+            grayscaleShader.use();
+            glUniform1i(grayscaleShader.getUniformLocation((char *)"theTexture"), 0);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        } else if (selectedEffect == MOSAIC) {
+            //TODO
+        } else {
+            screenShader.use();
+            glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -151,6 +178,13 @@ int main(int argc, char *argv[]) {
         if (ImGui::RadioButton("No Effect", selectedEffect == NO_EFFECT)) {
             selectedEffect = NO_EFFECT;
         }
+        if (ImGui::RadioButton("Grayscale", selectedEffect == GRAYSCALE)) {
+            selectedEffect = GRAYSCALE;
+        }
+        if (ImGui::RadioButton("Mosaic", selectedEffect == MOSAIC)) {
+            selectedEffect = MOSAIC;
+        }
+
         ImGui::End();
 
         ImGui::Render();
@@ -161,7 +195,9 @@ int main(int argc, char *argv[]) {
     }
 
     glDeleteFramebuffers(1, &frameBufferId);
-    shaderProgram.cleanup();
+    colorPassthroughShader.cleanup();
+    grayscaleShader.cleanup();
+    screenShader.cleanup();
 
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
