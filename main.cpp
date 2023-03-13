@@ -12,7 +12,7 @@
 
 const int WINDOW_WIDTH = 1280;
 const int WINDOW_HEIGHT = 720;
-const float FRAMERATE = 60.0f;
+const float FPS_UPDATE_SECONDS = 1.0;
 
 static void glfw_error_callback(int error, const char* description) {
     std::cerr << "GLFW Error " << error << ": " << description << std::endl;
@@ -68,6 +68,8 @@ int main(int argc, char *argv[]) {
     scanlinesShader.loadShadersFromFile("scanlines.vert", "scanlines.frag");
     ShaderProgram colorizeShader;
     colorizeShader.loadShadersFromFile("colorize.vert", "colorize.frag");
+    ShaderProgram boxBlurShader;
+    boxBlurShader.loadShadersFromFile("boxBlur.vert", "boxBlur.frag");
 
     GLuint frameBufferId, framebufferColorTexture;
     glGenFramebuffers(1, &frameBufferId);
@@ -93,7 +95,8 @@ int main(int argc, char *argv[]) {
         MOSAIC,
         SCANLINES,
         SEPIA,
-        COLORIZE
+        COLORIZE,
+        BOX_BLUR
     };
     int selectedEffect = NO_EFFECT;
 
@@ -132,14 +135,26 @@ int main(int argc, char *argv[]) {
     int mosaicBlockSize = 20;
     int scanlinesLineThickness = 3;
     glm::vec3 colorizeColor = glm::vec3(0.0f, 1.0f, 0.0f);
+    int boxBlurRadius = 5;
 
     bool animate = true;
     bool animatePressed = false;
     double previousTime = glfwGetTime();
+    double fpsTime = 0.0;
+    int frames = 0;
+    int displayedFps = 0;
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
         double deltaTime = currentTime - previousTime;
         previousTime = currentTime;
+
+        frames++;
+        fpsTime += deltaTime;
+        if (fpsTime >= FPS_UPDATE_SECONDS) {
+            displayedFps = frames / fpsTime;
+            frames = 0;
+            fpsTime = 0.0;
+        }
 
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -161,14 +176,12 @@ int main(int argc, char *argv[]) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-        if (!animate) {
-            deltaTime = 0;
-        }
-        cube.animateAndRender(deltaTime);
-        cube2.animateAndRender(deltaTime);
-        cube3.animateAndRender(deltaTime);
-        cube4.animateAndRender(deltaTime);
-        cube5.animateAndRender(deltaTime);
+        double animationDeltaTime = animate ? deltaTime : 0.0;
+        cube.animateAndRender(animationDeltaTime);
+        cube2.animateAndRender(animationDeltaTime);
+        cube3.animateAndRender(animationDeltaTime);
+        cube4.animateAndRender(animationDeltaTime);
+        cube5.animateAndRender(animationDeltaTime);
         glDisable(GL_DEPTH_TEST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -218,6 +231,15 @@ int main(int argc, char *argv[]) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
+        } else if (selectedEffect == BOX_BLUR) {
+            boxBlurShader.use();
+            glUniform1i(boxBlurShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform2f(boxBlurShader.getUniformLocation((char *)"dimensions"), displayWidth, displayHeight);
+            glUniform1i(boxBlurShader.getUniformLocation((char *)"blurRadius"), boxBlurRadius);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         } else {
             screenShader.use();
             glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
@@ -233,6 +255,7 @@ int main(int argc, char *argv[]) {
         ImGui::NewFrame();
 
         ImGui::Begin("Post-Processing Effects");
+        ImGui::Text("FPS: %d", displayedFps);
         if (ImGui::RadioButton("No Effect", selectedEffect == NO_EFFECT)) {
             selectedEffect = NO_EFFECT;
         }
@@ -251,6 +274,9 @@ int main(int argc, char *argv[]) {
         if (ImGui::RadioButton("Colorize", selectedEffect == COLORIZE)) {
             selectedEffect = COLORIZE;
         }
+        if (ImGui::RadioButton("Box Blur", selectedEffect == BOX_BLUR)) {
+            selectedEffect = BOX_BLUR;
+        }
 
 
         if (selectedEffect == MOSAIC) {
@@ -262,6 +288,9 @@ int main(int argc, char *argv[]) {
         } else if (selectedEffect == COLORIZE) {
             ImGui::SeparatorText("Colorize Options");
             ImGui::ColorEdit3("Color", &colorizeColor[0]);
+        } else if (selectedEffect == BOX_BLUR) {
+            ImGui::SeparatorText("Box Blur Options");
+            ImGui::SliderInt("Blur Radius", &boxBlurRadius, 1, 50);
         }
 
         ImGui::End();
@@ -279,6 +308,7 @@ int main(int argc, char *argv[]) {
     mosaicShader.cleanup();
     scanlinesShader.cleanup();
     colorizeShader.cleanup();
+    boxBlurShader.cleanup();
     screenShader.cleanup();
 
     // Cleanup
