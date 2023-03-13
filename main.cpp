@@ -62,6 +62,8 @@ int main(int argc, char *argv[]) {
     colorPassthroughShader.loadShadersFromFile("colorPassthrough.vert", "colorPassthrough.frag");
     ShaderProgram grayscaleShader;
     grayscaleShader.loadShadersFromFile("grayscale.vert", "grayscale.frag");
+    ShaderProgram mosaicShader;
+    mosaicShader.loadShadersFromFile("mosaic.vert", "mosaic.frag");
 
     GLuint frameBufferId, framebufferColorTexture;
     glGenFramebuffers(1, &frameBufferId);
@@ -159,7 +161,12 @@ int main(int argc, char *argv[]) {
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         } else if (selectedEffect == MOSAIC) {
-            //TODO
+            mosaicShader.use();
+            glUniform1i(grayscaleShader.getUniformLocation((char *)"theTexture"), 0);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         } else {
             screenShader.use();
             glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
@@ -197,6 +204,7 @@ int main(int argc, char *argv[]) {
     glDeleteFramebuffers(1, &frameBufferId);
     colorPassthroughShader.cleanup();
     grayscaleShader.cleanup();
+    mosaicShader.cleanup();
     screenShader.cleanup();
 
     // Cleanup

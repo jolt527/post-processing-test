@@ -48,7 +48,7 @@ bool ShaderProgram::loadShadersFromFile(const char* vertexShaderFilename, const 
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
     if (!status) {
         glGetShaderInfoLog(vertexShader, INFO_LOG_SIZE, NULL, infoLog);
-        std::cerr << "ERROR: vertex shader compliation failed\n" << infoLog << std::endl;
+        std::cerr << "ERROR: vertex shader compilation failed for " << vertexShaderFilename << "\n" << infoLog << std::endl;
         return false;
     }
 
@@ -58,7 +58,7 @@ bool ShaderProgram::loadShadersFromFile(const char* vertexShaderFilename, const 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &status);
     if (!status) {
         glGetShaderInfoLog(fragmentShader, INFO_LOG_SIZE, NULL, infoLog);
-        std::cerr << "ERROR: fragment shader compliation failed\n" << infoLog << std::endl;
+        std::cerr << "ERROR: fragment shader compilation failed for " << fragmentShaderFilename << "\n" << infoLog << std::endl;
         return false;
     }
 
