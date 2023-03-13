@@ -64,6 +64,8 @@ int main(int argc, char *argv[]) {
     grayscaleShader.loadShadersFromFile("grayscale.vert", "grayscale.frag");
     ShaderProgram mosaicShader;
     mosaicShader.loadShadersFromFile("mosaic.vert", "mosaic.frag");
+    ShaderProgram scanlinesShader;
+    scanlinesShader.loadShadersFromFile("scanlines.vert", "scanlines.frag");
 
     GLuint frameBufferId, framebufferColorTexture;
     glGenFramebuffers(1, &frameBufferId);
@@ -86,7 +88,8 @@ int main(int argc, char *argv[]) {
     enum PostProcessingEffect {
         NO_EFFECT,
         GRAYSCALE,
-        MOSAIC
+        MOSAIC,
+        SCANLINES
     };
     int selectedEffect = NO_EFFECT;
 
@@ -123,6 +126,7 @@ int main(int argc, char *argv[]) {
     screenShader.loadShadersFromFile("screen.vert", "screen.frag");
 
     int mosaicBlockSize = 20;
+    int scanlinesLineThickness = 3;
 
     double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
@@ -171,6 +175,14 @@ int main(int argc, char *argv[]) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
+        } else if (selectedEffect == SCANLINES) {
+            scanlinesShader.use();
+            glUniform1i(scanlinesShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform1i(scanlinesShader.getUniformLocation((char *)"lineThickness"), scanlinesLineThickness);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         } else {
             screenShader.use();
             glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
@@ -185,7 +197,7 @@ int main(int argc, char *argv[]) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Effects");
+        ImGui::Begin("Post-Processing Effects");
         if (ImGui::RadioButton("No Effect", selectedEffect == NO_EFFECT)) {
             selectedEffect = NO_EFFECT;
         }
@@ -195,11 +207,17 @@ int main(int argc, char *argv[]) {
         if (ImGui::RadioButton("Mosaic", selectedEffect == MOSAIC)) {
             selectedEffect = MOSAIC;
         }
+        if (ImGui::RadioButton("Scanlines", selectedEffect == SCANLINES)) {
+            selectedEffect = SCANLINES;
+        }
 
 
         if (selectedEffect == MOSAIC) {
             ImGui::SeparatorText("Mosaic Options");
             ImGui::SliderInt("Block Size", &mosaicBlockSize, 1, 100);
+        } else if (selectedEffect == SCANLINES) {
+            ImGui::SeparatorText("Scanline Options");
+            ImGui::SliderInt("Line Thickness", &scanlinesLineThickness, 1, 20);
         }
 
         ImGui::End();
@@ -215,6 +233,7 @@ int main(int argc, char *argv[]) {
     colorPassthroughShader.cleanup();
     grayscaleShader.cleanup();
     mosaicShader.cleanup();
+    scanlinesShader.cleanup();
     screenShader.cleanup();
 
     // Cleanup
