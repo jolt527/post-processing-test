@@ -133,6 +133,8 @@ int main(int argc, char *argv[]) {
     int scanlinesLineThickness = 3;
     glm::vec3 colorizeColor = glm::vec3(0.0f, 1.0f, 0.0f);
 
+    bool animate = true;
+    bool animatePressed = false;
     double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
@@ -146,11 +148,22 @@ int main(int argc, char *argv[]) {
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
+        int animateButtonStatus = glfwGetKey(window, GLFW_KEY_SPACE);
+        if (!animatePressed && animateButtonStatus == GLFW_PRESS) {
+            animate = !animate;
+            animatePressed = true;
+        } else if (animatePressed && animateButtonStatus == GLFW_RELEASE) {
+            animatePressed = false;
+        }
+
         glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
         glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
+        if (!animate) {
+            deltaTime = 0;
+        }
         cube.animateAndRender(deltaTime);
         cube2.animateAndRender(deltaTime);
         cube3.animateAndRender(deltaTime);
