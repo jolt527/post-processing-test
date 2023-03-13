@@ -148,9 +148,9 @@ int main(int argc, char *argv[]) {
         glDisable(GL_DEPTH_TEST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
+        int displayWidth, displayHeight;
+        glfwGetFramebufferSize(window, &displayWidth, &displayHeight);
+        glViewport(0, 0, displayWidth, displayHeight);
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         if (selectedEffect == GRAYSCALE) {
@@ -162,7 +162,9 @@ int main(int argc, char *argv[]) {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         } else if (selectedEffect == MOSAIC) {
             mosaicShader.use();
-            glUniform1i(grayscaleShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform1i(mosaicShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform2f(mosaicShader.getUniformLocation((char *)"dimensions"), displayWidth, displayHeight);
+            glUniform1i(mosaicShader.getUniformLocation((char *)"blockSize"), 20);
             glBindVertexArray(vao);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);

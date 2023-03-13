@@ -2,19 +2,14 @@
 
 out vec4 fragColor;
 
-in vec2 textureCoordinates;
-
 uniform sampler2D theTexture;
+uniform vec2 dimensions;
+uniform int blockSize;
 
 void main() {
-    int xBlocks = 150;
-    int yBlocks = 150;
-    float xBucketSize = 1.0f / xBlocks;
-    float yBucketSize = 1.0f / yBlocks;
-
     vec2 adjustedTextureCoordinates = vec2(
-        floor(textureCoordinates.x / xBucketSize) * xBucketSize,
-        floor(textureCoordinates.y / yBucketSize) * yBucketSize
+        floor(gl_FragCoord.x / blockSize) * blockSize / dimensions.x,
+        floor(gl_FragCoord.y / blockSize) * blockSize / dimensions.y
     );
     fragColor = vec4(
         texture(theTexture, adjustedTextureCoordinates).rgb,
