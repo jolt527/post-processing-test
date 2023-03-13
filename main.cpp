@@ -66,6 +66,8 @@ int main(int argc, char *argv[]) {
     mosaicShader.loadShadersFromFile("mosaic.vert", "mosaic.frag");
     ShaderProgram scanlinesShader;
     scanlinesShader.loadShadersFromFile("scanlines.vert", "scanlines.frag");
+    ShaderProgram colorizeShader;
+    colorizeShader.loadShadersFromFile("colorize.vert", "colorize.frag");
 
     GLuint frameBufferId, framebufferColorTexture;
     glGenFramebuffers(1, &frameBufferId);
@@ -89,7 +91,9 @@ int main(int argc, char *argv[]) {
         NO_EFFECT,
         GRAYSCALE,
         MOSAIC,
-        SCANLINES
+        SCANLINES,
+        SEPIA,
+        COLORIZE
     };
     int selectedEffect = NO_EFFECT;
 
@@ -127,6 +131,7 @@ int main(int argc, char *argv[]) {
 
     int mosaicBlockSize = 20;
     int scanlinesLineThickness = 3;
+    glm::vec3 colorizeColor = glm::vec3(0.0f, 1.0f, 0.0f);
 
     double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
@@ -183,6 +188,23 @@ int main(int argc, char *argv[]) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
+        } else if (selectedEffect == SEPIA) {
+            glm::vec3 sepiaColor = glm::vec3(0.439f, 0.259f, 0.0784f);
+            colorizeShader.use();
+            glUniform1i(colorizeShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform3fv(colorizeShader.getUniformLocation((char *)"selectedColor"), 1, &sepiaColor[0]);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        } else if (selectedEffect == COLORIZE) {
+            colorizeShader.use();
+            glUniform1i(colorizeShader.getUniformLocation((char *)"theTexture"), 0);
+            glUniform3fv(colorizeShader.getUniformLocation((char *)"selectedColor"), 1, &colorizeColor[0]);
+            glBindVertexArray(vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
         } else {
             screenShader.use();
             glUniform1i(screenShader.getUniformLocation((char *)"theTexture"), 0);
@@ -210,6 +232,12 @@ int main(int argc, char *argv[]) {
         if (ImGui::RadioButton("Scanlines", selectedEffect == SCANLINES)) {
             selectedEffect = SCANLINES;
         }
+        if (ImGui::RadioButton("Sepia", selectedEffect == SEPIA)) {
+            selectedEffect = SEPIA;
+        }
+        if (ImGui::RadioButton("Colorize", selectedEffect == COLORIZE)) {
+            selectedEffect = COLORIZE;
+        }
 
 
         if (selectedEffect == MOSAIC) {
@@ -218,6 +246,9 @@ int main(int argc, char *argv[]) {
         } else if (selectedEffect == SCANLINES) {
             ImGui::SeparatorText("Scanline Options");
             ImGui::SliderInt("Line Thickness", &scanlinesLineThickness, 1, 20);
+        } else if (selectedEffect == COLORIZE) {
+            ImGui::SeparatorText("Colorize Options");
+            ImGui::ColorEdit3("Color", &colorizeColor[0]);
         }
 
         ImGui::End();
@@ -234,6 +265,7 @@ int main(int argc, char *argv[]) {
     grayscaleShader.cleanup();
     mosaicShader.cleanup();
     scanlinesShader.cleanup();
+    colorizeShader.cleanup();
     screenShader.cleanup();
 
     // Cleanup
