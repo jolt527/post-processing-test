@@ -122,6 +122,8 @@ int main(int argc, char *argv[]) {
     ShaderProgram screenShader;
     screenShader.loadShadersFromFile("screen.vert", "screen.frag");
 
+    int mosaicBlockSize = 20;
+
     double previousTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
@@ -164,7 +166,7 @@ int main(int argc, char *argv[]) {
             mosaicShader.use();
             glUniform1i(mosaicShader.getUniformLocation((char *)"theTexture"), 0);
             glUniform2f(mosaicShader.getUniformLocation((char *)"dimensions"), displayWidth, displayHeight);
-            glUniform1i(mosaicShader.getUniformLocation((char *)"blockSize"), 20);
+            glUniform1i(mosaicShader.getUniformLocation((char *)"blockSize"), mosaicBlockSize);
             glBindVertexArray(vao);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, framebufferColorTexture);
@@ -192,6 +194,12 @@ int main(int argc, char *argv[]) {
         }
         if (ImGui::RadioButton("Mosaic", selectedEffect == MOSAIC)) {
             selectedEffect = MOSAIC;
+        }
+
+
+        if (selectedEffect == MOSAIC) {
+            ImGui::SeparatorText("Mosaic Options");
+            ImGui::SliderInt("Block Size", &mosaicBlockSize, 1, 100);
         }
 
         ImGui::End();
